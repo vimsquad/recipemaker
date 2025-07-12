@@ -26,6 +26,22 @@ async def list_recipes(
     return recipes[skip:skip + limit]
 
 
+@router.get("/recipes/search", response_model=List[Recipe])
+async def search_recipes(
+    query: Optional[str] = Query(None, description="Search term"),
+    cuisine: Optional[str] = Query(None, description="Filter by cuisine"),
+    difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
+    max_time: Optional[int] = Query(None, ge=0, description="Maximum total time in minutes")
+) -> List[Recipe]:
+    """Search recipes by various criteria."""
+    return db.search_recipes(
+        query=query,
+        cuisine=cuisine,
+        difficulty=difficulty,
+        max_time=max_time
+    )
+
+
 @router.get("/recipes/{recipe_id}", response_model=Recipe)
 async def get_recipe(recipe_id: int) -> Recipe:
     """Get a specific recipe by ID."""
@@ -49,22 +65,6 @@ async def delete_recipe(recipe_id: int) -> None:
     """Delete a recipe."""
     if not db.delete_recipe(recipe_id):
         raise HTTPException(status_code=404, detail="Recipe not found")
-
-
-@router.get("/recipes/search", response_model=List[Recipe])
-async def search_recipes(
-    query: Optional[str] = Query(None, description="Search term"),
-    cuisine: Optional[str] = Query(None, description="Filter by cuisine"),
-    difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
-    max_time: Optional[int] = Query(None, ge=0, description="Maximum total time in minutes")
-) -> List[Recipe]:
-    """Search recipes by various criteria."""
-    return db.search_recipes(
-        query=query,
-        cuisine=cuisine,
-        difficulty=difficulty,
-        max_time=max_time
-    )
 
 
 @router.get("/health")

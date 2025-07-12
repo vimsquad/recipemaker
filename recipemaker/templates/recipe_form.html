@@ -1,1 +1,168 @@
-THIS SHOULD BE A LINTER ERROR
+{% extends "base.html" %}
+
+{% block title %}{% if recipe %}Edit Recipe{% else %}New Recipe{% endif %} - Recipe Maker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item active">{% if recipe %}Edit Recipe{% else %}New Recipe{% endif %}</li>
+            </ol>
+        </nav>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-edit me-2"></i>{% if recipe %}Edit Recipe{% else %}Create New Recipe{% endif %}</h2>
+            </div>
+            <div class="card-body">
+                <form id="recipeForm" method="POST" action="{% if recipe %}/api/v1/recipes/{{ recipe.id }}{% else %}/api/v1/recipes{% endif %}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Recipe Title *</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       value="{{ recipe.title if recipe else '' }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"
+                                          placeholder="Brief description of the recipe...">{{ recipe.description if recipe else '' }}</textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="prep_time" class="form-label">Prep Time (minutes)</label>
+                                        <input type="number" class="form-control" id="prep_time" name="prep_time" 
+                                               value="{{ recipe.prep_time if recipe else '' }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="cook_time" class="form-label">Cook Time (minutes)</label>
+                                        <input type="number" class="form-control" id="cook_time" name="cook_time" 
+                                               value="{{ recipe.cook_time if recipe else '' }}" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="servings" class="form-label">Servings</label>
+                                        <input type="number" class="form-control" id="servings" name="servings" 
+                                               value="{{ recipe.servings if recipe else '' }}" min="1">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="difficulty" class="form-label">Difficulty</label>
+                                        <select class="form-select" id="difficulty" name="difficulty">
+                                            <option value="">Select difficulty...</option>
+                                            <option value="Easy" {% if recipe and recipe.difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+                                            <option value="Medium" {% if recipe and recipe.difficulty == 'Medium' %}selected{% endif %}>Medium</option>
+                                            <option value="Hard" {% if recipe and recipe.difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="cuisine" class="form-label">Cuisine</label>
+                                <input type="text" class="form-control" id="cuisine" name="cuisine" 
+                                       value="{{ recipe.cuisine if recipe else '' }}" 
+                                       placeholder="e.g., Italian, Mexican, Asian...">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Form Tips</h6>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="fas fa-info-circle text-info me-1"></i>Title and ingredients are required</li>
+                                        <li><i class="fas fa-info-circle text-info me-1"></i>Add ingredients one per line</li>
+                                        <li><i class="fas fa-info-circle text-info me-1"></i>Add instructions step by step</li>
+                                        <li><i class="fas fa-info-circle text-info me-1"></i>Times are in minutes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ingredients" class="form-label">Ingredients *</label>
+                        <textarea class="form-control" id="ingredients" name="ingredients" rows="6" required
+                                  placeholder="Enter ingredients, one per line...">{% if recipe %}{{ '\n'.join(recipe.ingredients) }}{% endif %}</textarea>
+                        <div class="form-text">Enter each ingredient on a separate line</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="instructions" class="form-label">Instructions *</label>
+                        <textarea class="form-control" id="instructions" name="instructions" rows="8" required
+                                  placeholder="Enter cooking instructions, one step per line...">{% if recipe %}{{ '\n'.join(recipe.instructions) }}{% endif %}</textarea>
+                        <div class="form-text">Enter each instruction step on a separate line</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>{% if recipe %}Update Recipe{% else %}Create Recipe{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('recipeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        title: formData.get('title'),
+        description: formData.get('description') || null,
+        ingredients: formData.get('ingredients').split('\n').filter(ing => ing.trim()),
+        instructions: formData.get('instructions').split('\n').filter(inst => inst.trim()),
+        prep_time: formData.get('prep_time') ? parseInt(formData.get('prep_time')) : null,
+        cook_time: formData.get('cook_time') ? parseInt(formData.get('cook_time')) : null,
+        servings: formData.get('servings') ? parseInt(formData.get('servings')) : null,
+        difficulty: formData.get('difficulty') || null,
+        cuisine: formData.get('cuisine') || null
+    };
+    
+    const method = '{% if recipe %}PUT{% else %}POST{% endif %}';
+    const url = this.action;
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok');
+    })
+    .then(recipe => {
+        window.location.href = `/recipe/${recipe.id}`;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving recipe. Please try again.');
+    });
+});
+</script>
+{% endblock %}

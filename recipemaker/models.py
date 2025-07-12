@@ -9,8 +9,8 @@ class RecipeBase(BaseModel):
     """Base recipe model with common fields."""
     title: str = Field(..., min_length=1, max_length=200, description="Recipe title")
     description: Optional[str] = Field(None, max_length=500, description="Recipe description")
-    ingredients: List[str] = Field(..., min_items=1, description="List of ingredients")
-    instructions: List[str] = Field(..., min_items=1, description="Cooking instructions")
+    ingredients: List[str] = Field(..., min_length=1, description="List of ingredients")
+    instructions: List[str] = Field(..., min_length=1, description="Cooking instructions")
     prep_time: Optional[int] = Field(None, ge=0, description="Preparation time in minutes")
     cook_time: Optional[int] = Field(None, ge=0, description="Cooking time in minutes")
     servings: Optional[int] = Field(None, ge=1, description="Number of servings")
@@ -27,8 +27,8 @@ class RecipeUpdate(BaseModel):
     """Model for updating an existing recipe."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=500)
-    ingredients: Optional[List[str]] = Field(None, min_items=1)
-    instructions: Optional[List[str]] = Field(None, min_items=1)
+    ingredients: Optional[List[str]] = Field(None, min_length=1)
+    instructions: Optional[List[str]] = Field(None, min_length=1)
     prep_time: Optional[int] = Field(None, ge=0)
     cook_time: Optional[int] = Field(None, ge=0)
     servings: Optional[int] = Field(None, ge=1)
@@ -42,8 +42,7 @@ class Recipe(RecipeBase):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class RecipeList(BaseModel):
