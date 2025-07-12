@@ -1,7 +1,15 @@
 [project]
 name = "recipemaker"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python program to scale recipes from one serving size to another"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "click>=8.0.0"
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.9.2",
+    "pytest>=8.4.1",
+]
