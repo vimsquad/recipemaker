@@ -1,0 +1,463 @@
+# Cursor Rules for Using Click Instead of Argparse
+
+## General Principles
+
+- **Always use click instead of argparse** for command-line interfaces
+- Click provides better decorator-based syntax, automatic help generation, and type conversion
+- Use click's built-in validation and error handling features
+- Leverage click's context system for sharing data between commands
+
+## Basic Click Usage
+
+### Command Structure
+```python
+import click
+
+@click.command()
+@click.option('--name', '-n', default='World', help='Name to greet')
+@click.option('--count', '-c', default=1, help='Number of greetings')
+def hello(name, count):
+    """Simple program that greets NAME for a total of COUNT times."""
+    for x in range(count):
+        click.echo(f'Hello {name}!')
+
+if __name__ == '__main__':
+    hello()
+```
+
+### Required Imports
+```python
+import click
+from typing import Optional, List, Tuple, Union
+```
+
+## Option Decorators
+
+### Basic Options
+```python
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose mode')
+@click.option('--name', '-n', required=True, help='Required name parameter')
+@click.option('--count', '-c', default=1, type=int, help='Number of items')
+@click.option('--file', '-f', type=click.Path(exists=True), help='Input file path')
+```
+
+### Advanced Options
+```python
+@click.option('--choice', '-c', type=click.Choice(['option1', 'option2']), help='Choose an option')
+@click.option('--range', '-r', nargs=2, type=int, help='Min and max values')
+@click.option('--multiple', '-m', multiple=True, help='Multiple values allowed')
+@click.option('--secret', '-s', hide_input=True, prompt=True, help='Secret input')
+```
+
+## Argument Decorators
+
+### Basic Arguments
+```python
+@click.argument('filename', type=click.Path(exists=True))
+@click.argument('numbers', nargs=-1, type=int)
+def process(filename, numbers):
+    """Process FILENAME with optional NUMBERS."""
+    pass
+```
+
+### Argument Types
+```python
+@click.argument('input_file', type=click.File('r'))
+@click.argument('output_file', type=click.File('w'))
+@click.argument('directory', type=click.Path(file_okay=False, dir_okay=True))
+```
+
+## Command Groups and Subcommands
+
+### Command Groups
+```python
+@click.group()
+def cli():
+    """Main command group."""
+    pass
+
+@cli.command()
+def init():
+    """Initialize the application."""
+    pass
+
+@cli.command()
+def run():
+    """Run the application."""
+    pass
+```
+
+### Nested Groups
+```python
+@click.group()
+def cli():
+    pass
+
+@cli.group()
+def database():
+    """Database operations."""
+    pass
+
+@database.command()
+def create():
+    """Create database."""
+    pass
+
+@database.command()
+def migrate():
+    """Run migrations."""
+    pass
+```
+
+## Context and Shared Data
+
+### Using Context
+```python
+@click.group()
+@click.option('--debug/--no-debug', default=False)
+@click.pass_context
+def cli(ctx, debug):
+    """Main CLI with debug option."""
+    ctx.ensure_object(dict)
+    ctx.obj['DEBUG'] = debug
+
+@cli.command()
+@click.pass_context
+def subcommand(ctx):
+    """Subcommand that can access context."""
+    if ctx.obj['DEBUG']:
+        click.echo('Debug mode enabled')
+```
+
+## Type Conversion and Validation
+
+### Custom Types
+```python
+class ConfigFile(click.ParamType):
+    name = 'config_file'
+    
+    def convert(self, value, param, ctx):
+        if not os.path.exists(value):
+            self.fail(f'Config file "{value}" does not exist.')
+        return value
+
+@click.option('--config', type=ConfigFile(), help='Configuration file')
+```
+
+### Built-in Validators
+```python
+@click.option('--port', type=click.IntRange(1, 65535), help='Port number')
+@click.option('--size', type=click.FloatRange(0.0, 100.0), help='Size value')
+@click.option('--email', type=click.Email(), help='Email address')
+```
+
+## Error Handling and Output
+
+### Error Messages
+```python
+@click.command()
+def main():
+    try:
+        # Your logic here
+        pass
+    except Exception as e:
+        click.echo(f'Error: {e}', err=True)
+        sys.exit(1)
+```
+
+### Colored Output
+```python
+import click
+
+click.echo(click.style('Success!', fg='green'))
+click.echo(click.style('Warning!', fg='yellow'))
+click.echo(click.style('Error!', fg='red'))
+```
+
+### Progress Bars
+```python
+with click.progressbar(range(100)) as bar:
+    for i in bar:
+        # Process item i
+        time.sleep(0.01)
+```
+
+## Best Practices
+
+### 1. Always Use Type Hints
+```python
+@click.command()
+@click.option('--name', '-n', type=str, help='Name parameter')
+def hello(name: str) -> None:
+    """Greet the user."""
+    click.echo(f'Hello {name}!')
+```
+
+### 2. Provide Help Text
+```python
+@click.option('--input', '-i', type=click.Path(exists=True), 
+              help='Input file to process')
+@click.option('--output', '-o', type=click.Path(), 
+              help='Output file path')
+```
+
+### 3. Use Sensible Defaults
+```python
+@click.option('--timeout', '-t', default=30, type=int, 
+              help='Timeout in seconds (default: 30)')
+@click.option('--config', '-c', default='config.yaml', 
+              help='Configuration file (default: config.yaml)')
+```
+
+### 4. Handle File Operations
+```python
+@click.option('--input', '-i', type=click.File('r'), 
+              help='Input file')
+@click.option('--output', '-o', type=click.File('w'), 
+              help='Output file')
+def process_files(input, output):
+    """Process input file and write to output file."""
+    for line in input:
+        processed = process_line(line)
+        output.write(processed + '\n')
+```
+
+### 5. Use Environment Variables
+```python
+@click.option('--api-key', envvar='API_KEY', 
+              help='API key (can also be set via API_KEY env var)')
+@click.option('--config', envvar='CONFIG_FILE', 
+              help='Config file (can also be set via CONFIG_FILE env var)')
+```
+
+## Migration from Argparse
+
+### Before (Argparse)
+```python
+import argparse
+
+def main():
+    parser = argparse.ArgumentParser(description='My CLI tool')
+    parser.add_argument('--name', '-n', required=True, help='Name')
+    parser.add_argument('--count', '-c', type=int, default=1, help='Count')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose')
+    
+    args = parser.parse_args()
+    
+    for i in range(args.count):
+        print(f'Hello {args.name}!')
+        if args.verbose:
+            print(f'Greeting {i+1} of {args.count}')
+
+if __name__ == '__main__':
+    main()
+```
+
+### After (Click)
+```python
+import click
+
+@click.command()
+@click.option('--name', '-n', required=True, help='Name')
+@click.option('--count', '-c', default=1, type=int, help='Count')
+@click.option('--verbose', '-v', is_flag=True, help='Verbose')
+def main(name: str, count: int, verbose: bool) -> None:
+    """My CLI tool."""
+    for i in range(count):
+        click.echo(f'Hello {name}!')
+        if verbose:
+            click.echo(f'Greeting {i+1} of {count}')
+
+if __name__ == '__main__':
+    main()
+```
+
+## Common Patterns
+
+### Configuration Management
+```python
+@click.group()
+@click.option('--config', '-c', type=click.Path(exists=True), 
+              help='Configuration file')
+@click.pass_context
+def cli(ctx, config):
+    """Main CLI with configuration support."""
+    ctx.ensure_object(dict)
+    if config:
+        ctx.obj['config'] = load_config(config)
+    else:
+        ctx.obj['config'] = load_default_config()
+```
+
+### Database Operations
+```python
+@click.group()
+@click.option('--database', '-d', required=True, help='Database URL')
+@click.pass_context
+def db(ctx, database):
+    """Database operations."""
+    ctx.ensure_object(dict)
+    ctx.obj['db_url'] = database
+
+@db.command()
+@click.pass_context
+def migrate(ctx):
+    """Run database migrations."""
+    db_url = ctx.obj['db_url']
+    # Migration logic here
+```
+
+### File Processing
+```python
+@click.command()
+@click.argument('input_files', nargs=-1, type=click.Path(exists=True))
+@click.option('--output', '-o', type=click.Path(), help='Output file')
+@click.option('--format', '-f', type=click.Choice(['json', 'csv', 'xml']), 
+              default='json', help='Output format')
+def process_files(input_files, output, format):
+    """Process multiple input files."""
+    for file_path in input_files:
+        with click.open_file(file_path, 'r') as f:
+            # Process file
+            pass
+```
+
+## Testing Click Commands
+
+### Unit Testing
+```python
+from click.testing import CliRunner
+from your_module import cli
+
+def test_hello():
+    runner = CliRunner()
+    result = runner.invoke(cli, ['hello', '--name', 'World'])
+    assert result.exit_code == 0
+    assert 'Hello World!' in result.output
+```
+
+### Integration Testing
+```python
+def test_with_input():
+    runner = CliRunner()
+    result = runner.invoke(cli, ['process'], input='test data\n')
+    assert result.exit_code == 0
+```
+
+## Error Handling Patterns
+
+### Custom Exceptions
+```python
+class ConfigError(click.ClickException):
+    """Raised when configuration is invalid."""
+    pass
+
+@click.command()
+def main():
+    try:
+        # Your logic
+        pass
+    except ConfigError as e:
+        raise click.ClickException(str(e))
+```
+
+### Validation Functions
+```python
+def validate_port(ctx, param, value):
+    if value < 1024 or value > 65535:
+        raise click.BadParameter('Port must be between 1024 and 65535')
+    return value
+
+@click.option('--port', callback=validate_port, type=int)
+```
+
+## Performance Considerations
+
+### Lazy Loading
+```python
+@click.group()
+def cli():
+    """Main CLI - imports are done lazily."""
+    pass
+
+@cli.command()
+def heavy_operation():
+    """Heavy operation that imports expensive modules."""
+    import expensive_module
+    # Use expensive_module
+```
+
+### Async Support
+```python
+import asyncio
+import click
+
+@click.command()
+def main():
+    """Run async operations."""
+    asyncio.run(async_main())
+
+async def async_main():
+    """Async main function."""
+    # Async operations here
+    pass
+```
+
+## Documentation
+
+### Always Include Docstrings
+```python
+@click.command()
+@click.option('--name', help='Name to process')
+def process(name: str) -> None:
+    """Process the given name.
+    
+    This command processes the provided name and performs various operations
+    on it. The name should be a valid string.
+    
+    Examples:
+        $ python script.py process --name "John Doe"
+        $ python script.py process -n "Jane Smith"
+    """
+    click.echo(f'Processing: {name}')
+```
+
+### Use Click's Help System
+```python
+@click.group()
+@click.version_option(version='1.0.0')
+@click.help_option()
+def cli():
+    """My awesome CLI tool.
+    
+    This tool provides various utilities for processing data.
+    Use --help on any command for more information.
+    """
+    pass
+```
+
+## Security Considerations
+
+### Sensitive Input
+```python
+@click.option('--password', prompt=True, hide_input=True, 
+              confirmation_prompt=True, help='Password')
+@click.option('--api-key', prompt=True, hide_input=True, 
+              help='API key')
+```
+
+### File Permissions
+```python
+@click.option('--config', type=click.Path(exists=True, file_okay=True, 
+              dir_okay=False, readable=True), help='Config file')
+```
+
+## Remember
+
+- **Always use click instead of argparse** for new CLI applications
+- Leverage click's built-in features for better user experience
+- Use type hints and proper error handling
+- Provide comprehensive help text and documentation
+- Test your CLI commands thoroughly
+- Use click's context system for sharing data between commands
+- Follow the patterns and best practices outlined above 
